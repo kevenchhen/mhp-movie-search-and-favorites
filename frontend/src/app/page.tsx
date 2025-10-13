@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { moviesApi, favoritesApi } from '@/lib/api';
 import { Movie } from '@/types/movie';
@@ -13,14 +13,14 @@ export default function Home() {
   const pageSize = 10;
 
   // Debounce search query
-  useState(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
       setCurrentPage(1); // Reset to page 1 on new search
     }, 500);
 
     return () => clearTimeout(timer);
-  });
+  }, [searchQuery]);
 
   // Fetch movies with pagination
   const { data: paginatedData, isLoading, error } = useQuery({
