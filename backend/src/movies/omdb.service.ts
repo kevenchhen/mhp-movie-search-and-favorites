@@ -57,5 +57,41 @@ export class OmdbService {
       throw error;
     }
   }
+
+  async searchMoviesWithPagination(query: string, page: number = 1): Promise<{ movies: Movie[]; totalResults: number }> {
+    try {
+      const response = await axios.get<OmdbSearchResponse>(this.baseUrl, {
+        params: {
+          apikey: this.apiKey,
+          s: query,
+          type: 'movie',
+          page: page,
+        },
+      });
+
+      if (response.data.Response === 'False') {
+        if (response.data.Error?.includes('Movie not found')) {
+          return { movies: [], totalResults: 0 };
+        }
+        throw new HttpException(
+          response.data.Error || 'Failed to fetch movies',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const movies = response.data.Search || [];
+      const totalResults = parseInt(response.data.totalResults) || 0;
+
+      return { movies, totalResults };
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new HttpException(
+          'Failed to connect to OMDb API',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+      throw error;
+    }
+  }
 }
 

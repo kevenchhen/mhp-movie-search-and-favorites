@@ -29,22 +29,14 @@ export class MoviesService {
       };
     }
 
-    const allMovies = await this.omdbService.searchMovies(query.trim());
-    const totalResults = allMovies.length;
+    // Use OMDB's built-in pagination
+    const { movies, totalResults } = await this.omdbService.searchMoviesWithPagination(query.trim(), page);
     const totalPages = Math.ceil(totalResults / pageSize);
-    
-    // Clamp page to valid range
-    const validPage = Math.max(1, Math.min(page, totalPages || 1));
-    
-    // Calculate pagination
-    const startIndex = (validPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const movies = allMovies.slice(startIndex, endIndex);
 
     return {
       movies,
       totalResults,
-      page: validPage,
+      page,
       pageSize,
       totalPages: totalPages || 1,
     };

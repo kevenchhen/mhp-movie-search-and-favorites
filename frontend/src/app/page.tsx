@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { moviesApi, favoritesApi } from '@/lib/api';
 import { Movie } from '@/types/movie';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ export default function Home() {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const queryClient = useQueryClient();
 
   // Debounce search query
   useEffect(() => {
@@ -41,11 +42,27 @@ export default function Home() {
 
   const isFavorite = (imdbID: string) => favoritesApi.isFavorite(imdbID);
 
-  const handleToggleFavorite = async (movie: Movie, isFavorite: boolean) => {
-    if (isFavorite) {
-      await favoritesApi.removeFavorite(movie.imdbID);
+  // Add favorite mutation
+  const addFavoriteMutation = useMutation({
+    mutationFn: favoritesApi.addFavorite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+    },
+  });
+
+  // Remove favorite mutation
+  const removeFavoriteMutation = useMutation({
+    mutationFn: favoritesApi.removeFavorite,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+    },
+  });
+
+  const handleToggleFavorite = async (movie: Movie, isFav: boolean) => {
+    if (isFav) {
+      removeFavoriteMutation.mutate(movie.imdbID);
     } else {
-      await favoritesApi.addFavorite(movie);
+      addFavoriteMutation.mutate(movie);
     }
   };
 
@@ -124,8 +141,13 @@ export default function Home() {
                     <button
                       className={`favorite-button ${isFav ? 'remove' : ''}`}
                       onClick={() => handleToggleFavorite(movie, isFav)}
+                      disabled={addFavoriteMutation.isPending || removeFavoriteMutation.isPending}
                     >
-                      {isFav ? '❤️ Remove from Favorites' : '🤍 Add to Favorites'}
+                      {addFavoriteMutation.isPending || removeFavoriteMutation.isPending
+                        ? '⏳ Loading...'
+                        : isFav 
+                        ? '❤️ Remove from Favorites' 
+                        : '🤍 Add to Favorites'}
                     </button>
                   </div>
                 </div>
